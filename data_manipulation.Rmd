@@ -1,0 +1,304 @@
+---
+title: "Manipulação Básica de Dados"
+output: html_notebook
+---
+
+Os dados vêm em todos os tipos de formas e formatos diferentes, e o que é útil ou prático para um aplicativo não é necessariamente assim para outro. R tem requisitos específicos sobre a configuração e os tipos de dados que podem ser passados para funções, então uma das melhores habilidades em sua caixa de ferramentas de codificação é ser capaz de jogar com seus dados como massa e dar-lhe qualquer forma que você precisa!
+
+> Todos os arquivos que você precisa para concluir este tutorial estarão na pasta **Assets** do projeto.
+
+## **1. Subdefinir, extrair e modificar dados com operadores R**
+
+Os quadros de dados são objetos R feitos de linhas e colunas contendo observações de diferentes variáveis: você geralmente estará importando seus dados dessa maneira. Às vezes, você pode notar alguns erros após a importação, precisar renomear uma variável ou manter apenas um subconjunto dos dados que atenda a algumas condições.
+
+> **EmpetrumElongation.csv** representa incrementos anuais no crescimento do caule, medidos em arbustos de cabeleira em um sistema de dunas de areia.
+
+Acessar variáveis em R usando o cifrão já é uma maneira de subconfiguração, pois essencialmente reduz seu quadro de dados (2 dimensões) a um vetor (1 dimensão). Você também pode acessar partes de um quadro de dados usando colchetes .
+
+```{r}
+# Carrega os dados de Elongation
+elongation <- read.csv("Assets/EmpetrumElongation.csv", header = TRUE)
+```
+
+```{r}
+# Verifique os dados de importação e visualização
+head(elongation) # primeiras observações
+str(elongation) # tipos de variáveis
+```
+
+```{r}
+# Vamos tirar algumas informações deste objeto!
+elongation$Indiv # imprime todos os códigos de identificação do conjunto de dados
+
+length(unique(elongation$Indiv)) # retorna o número de arbustos distintos nos dados
+```
+
+```{r}
+# Veja como obtemos o valor na segunda linha e na quinta coluna
+elongation[2,5]
+
+# Veja como obtemos todas as informações da linha número 6
+elongation[6, ]
+
+# E claro que você pode misturar tudo!
+elongation[6, ]$Indiv # retorna o valor na coluna Indiv para a sexta observação
+```
+
+Subdefinir com colchetes usando números de linha e coluna pode ser bastante tedioso se você tiver um grande conjunto de dados e não souber onde as observações que você está procurando estão situadas! E nunca é recomendado de qualquer maneira, porque se você codificar um número em seu script e adicionar algumas linhas mais tarde, talvez não esteja mais selecionando as mesmas observações! É por isso que podemos usar **operações lógicas** para acessar partes específicas dos dados que correspondem à nossa especificação.
+
+```{r}
+# Vamos acessar os valores do número individual 603
+elongation[elongation$Indiv == 603, ]
+```
+
+```{r}
+# Subconjunto com uma condição
+elongation[elongation$Zone < 4, ] # retorna apenas os dados das zonas 2-3
+elongation[elongation$Zone <= 4, ] # retorna apenas os dados das zonas 2-3-4
+
+# Isso é completamente equivalente à última afirmação
+elongation[!elongation$Zone >= 5, ] # o ! significa excluir
+
+# Subconjunto com duas condições
+elongation[elongation$Zone == 2 | elongation$Zone == 7, ] # retorna apenas dados das zonas 2 e 7 
+elongation[elongation$Zone == 2 & elongation$Indiv %in% c(300:400), ] # retorna dados de arbustos na zona 2 cujos números de identificação estão entre 300 e 400
+```
+
+Como você pode ver, quanto mais exigente você é com suas condições, mais confuso o código se torna.
+
+> Você notou esse último pedaço de código: c(300:400)? Usar dois pontos entre os dois números significa contar de 300 a 400:
+>
+> Outros construtores de sequência vetorial úteis são:
+>
+> **seq()** para criar uma sequência, incrementando em qualquer quantidade especificada. Por exemplo, tente seq(300, 400, 10)
+>
+> **rep()** para criar repetições de elementos. Por exemplo, vai dar: rep(c(1,2), 3)1 2 1 2 1 2
+>
+> Você pode misturar e combinar: rep(seq(0, 30, 10), 4)
+
+E, finalmente, digamos que você precise modificar alguns valores ou níveis de fator, ou queira criar uma nova coluna? Agora que você sabe como acessar partes de um dataframe, você pode fazer tudo isso. Você só precisa de uma ferramenta extra: a seta de atribuição para substituir dados: **\<-**
+
+```{r}
+# Vamos criar uma cópia de trabalho do nosso objeto
+elong2 <- elongation
+```
+
+Agora suponha que você queira alterar o nome de uma coluna: você pode usar a função names(). Usado sozinho, retorna um vetor dos nomes das colunas. Usado no lado esquerdo da seta de atribuição, ele substitui todos ou alguns dos nomes por valores de sua escolha.
+
+```{r}
+names(elong2) # Retorna os nomes das colunas 
+
+names(elong2)[1] <- "zone" # Mudando Zone para Zone: chamamos o 1º elemento do vetor de nomes usando colchetes e atribuímos a ele um novo valor
+
+names(elong2)[2] <- "ID" # Alterando Indiv para ID: chamamos o 2º elemento e atribuímos a ele o valor desejado
+```
+
+```{r}
+# Agora suponha que haja um erro nos dados, e o valor 5,1 para o indivíduo 373 no ano de 2008 deveria ser realmente 5,7
+
+# opção 1: você pode usar o número da linha e da coluna
+elong2[1,4] <- 5.7
+
+# opção 2: você pode usar condições lógicas para ter mais controle
+elong2[elong2$ID == 373, ]$X2008 <- 5.7 # completamente equivalente à opção 1
+```
+
+```{r}
+## CRIANDO UM FATOR
+
+# Vamos conferir as aulas
+str(elong2)
+```
+
+A coluna da zona é mostrada como dados inteiros (números inteiros), mas na verdade é um fator de agrupamento (as zonas poderiam ter sido chamadas de A, B, C, etc.) Vamos transformá-la em um fator:
+
+```{r}
+# convertendo e sobrescrevendo a classe original
+elong2$zone <- as.factor(elong2$zone)
+
+str(elong2)
+```
+
+E se você não estiver satisfeito com os níveis de fatores? Você pode ver os nomes dos fatores com a função **levels()** e sim, substituí-los também.
+
+```{r}
+## ALTERANDO OS NÍVEIS DE UM FATOR
+
+levels(elong2$zone) # mostra os diferentes níveis de fator
+
+levels(elong2$zone) <- c("A", "B", "C", "D", "E", "F") # você pode substituir os níveis originais por novos nomes
+
+# Você deve ter certeza de que possui um vetor do mesmo comprimento que o número de fatores e prestar atenção na ordem em que eles aparecem!
+```
+
+Isso era muito, mas agora você poderá adaptar esses pequenos pedaços de código para manipular seus próprios dados
+
+## **2. O que são dados arrumados e como alcançá-los?**
+
+A maneira como você registra informações no campo ou no laboratório é provavelmente muito diferente da maneira como você deseja que seus dados sejam inseridos no R. No campo, você quer tabelas que você pode idealmente elaborar com antecedência e preencher à medida que avança, e você estará adicionando notas e todos os tipos de informações, além dos dados que deseja analisar. Os conjuntos de dados organizados são organizados de modo que cada **linha** represente uma **observação** e cada **coluna** represente uma variável.
+
+Com base nisso, você percebe algo não muito arrumado com nosso alongamento de objeto anterior? Temos a observação da mesma variável, ou seja, o comprimento do caule, espalhado por várias colunas representando anos diferentes. A função **gather()** do pacote **tidyr** nos permitirá converter essa tabela de grande formato em um dataframe organizado.
+
+```{r}
+# instalando e carregando o package se necessário 
+#install.packages("tidyr")  
+library(tidyr) 
+
+# nesta ordem: quadro de dados, chave, valor. Precisamos especificar quais colunas reunir: c(colunas)
+elongation_long <- gather(elongation, Year, Length, c(X2007, X2008, X2009, X2010, X2011, X2012))
+
+# Aqui queremos que os comprimentos (value) sejam coletados por ano (key)
+
+# Vamos reverter! spread() é a função inversa, permitindo que você passe do formato longo para o formato largo
+elongation_wide <- spread(elongation_long, Year, Length)
+```
+
+Observe como usamos os nomes das colunas para dizer quais colunas devem ser remodeladas. Isso é útil se você tiver apenas alguns, e se as colunas mudarem de ordem eventualmente, a função gather() ainda funcionará. No entanto, se você tiver um conjunto de dados com colunas para 100 genes, por exemplo, talvez seja melhor especificar os números de coluna:
+
+```{r}
+# Exemplo
+elongation_long2 <- gather(elongation, Year, Length, c(3:8))
+```
+
+No entanto, essas funções têm limitações e não funcionarão em todas as estruturas de dados.
+
+Depois de ter os dados no formato certo, é muito mais fácil analisá-los e visualizar os resultados. Por exemplo, se quisermos descobrir se há variação interanual no crescimento de Empetrum hermaphroditum, podemos rapidamente fazer um boxplot:
+
+```{r}
+boxplot(Length ~ Year, data = elongation_long,
+        xlab = "Ano", ylab = "Alongamento (cm)",
+        main = "Crescimento anual de Empetrum hermaphroditum")
+```
+
+Olhando para o boxplot, há uma sobreposição bastante grande entre o crescimento anual em cada ano - nada de especial para ver.
+
+## **3. Explore as funções mais comuns e úteis de dplyr**
+
+Vamos conhecer as funções mais comuns e úteis trabalhando no objeto de formato longo que acabamos de criar.
+
+```{r}
+# Instalando e carregando package
+# install.packages("dplyr")
+# library(dplyr)
+```
+
+### **3a. Variáveis**
+
+**rename()**, isso permite que você altere o(s) nome(s) de uma coluna ou colunas. O primeiro argumento é o quadro de dados, o segundo (e terceiro, etc.) assume a forma Novo nome = Nome antigo.
+
+```{r eval=FALSE, include=FALSE}
+# altera os nomes das colunas (livrando-se das letras maiúsculas) e sobrescrevendo nosso data frame.
+elongation_long <- rename(elongation_long, zone = Zone, indiv = Indiv, year = Year, length = Length)
+
+# Como vimos anteriormente, o equivalente na base R teria sido
+names(elongation_long) <- c("zone", "indiv", "year", "length")
+```
+
+### **3b. Linhas e Colunas**
+
+**filter()** e **select()**, estas são algumas das funções mais rotineiras que permitem reduzir o quadro de dados apenas às linhas e colunas de que precisa. A função **filter()** funciona muito bem para subdefinir linhas com operações lógicas. A função **select()** permite especificar quais colunas manter.
+
+> Nota: a função select() frequentemente entra em conflito com funções de mesmo nome em outros pacotes, e por essa razão é recomendável sempre usar a notação **dplyr::select()** ao chamá-la.
+
+```{r}
+# OBSERVAÇÕES DE FILTRO
+
+# Vamos manter as observações apenas das zonas 2 e 3, e dos anos de 2009 a 2011
+elong_subset <- filter(elongation_long, zone %in% c(2, 3), year %in% c("X2009", "X2010", "X2011")) # você pode usar várias condições diferentes separadas por vírgulas
+
+# Para comparação, o equivalente base R seria (não atribuído a um objeto aqui):
+elongation_long[elongation_long$zone %in% c(2,3) & elongation_long$year %in% c("X2009", "X2010", "X2011"), ]
+```
+
+Agora que sabemos como subdefinir linhas, vamos fazer o mesmo com colunas!
+
+```{r warning=FALSE}
+# SELECIONE COLUNAS
+
+# Vamos abandonar a coluna zona apenas como exemplo
+
+elong_no.zone <- dplyr::select(elongation_long, indiv, year, length) # ou alternativamente
+
+elong_no.zone <- dplyr::select(elongation_long, -zone) # o sinal de menos remove a coluna
+
+# Para comparação, o equivalente base R seria (não atribuído a um objeto aqui):
+elongation_long[ , -1]  # remove a primeira coluna
+
+# Um belo hack! select() permite renomear e reordenar colunas dinamicamente
+elong_no.zone <- dplyr::select(elongation_long, Year = year, Shrub.ID = indiv, Growth = length)
+```
+
+### **3c. Seu conjunto de dados criando novas colunas**
+
+Algo que ainda não abordamos é como criar uma nova coluna. Isso é útil quando você deseja executar uma operação em várias colunas ou talvez reclassificar um fator. A função **mutate()** faz exatamente isso e também permite que você defina o nome da coluna.
+
+```{r warning=FALSE}
+elong_total <- mutate(elongation, total.growth = X2007 + X2008 + X2009 + X2010 + X2011 + X2012)
+```
+
+Agora, vamos ver como poderíamos fazer a mesma coisa em nossos dados de formato longo usando duas funções que combinam muito bem juntas.
+
+### **3d. Certos fatores para executar operações em blocos de dados**
+
+**group_by()**, a coisa mais importante a entender sobre essa função é que você não vê nenhuma alteração visível no seu quadro de dados.
+
+```{r warning=FALSE}
+# GROUP DATA
+
+elong_grouped <- group_by(elongation_long, indiv) # agrupando nosso conjunto de dados por indivíduo
+```
+
+### **3e. dados com uma série de estatísticas resumidas**
+
+**summarise()**, essa função sempre agregará seu quadro de dados original, ou seja, o quadro de dados de saída será menor do que o de entrada. Aqui, vamos contrastar a soma dos incrementos de crescimento ao longo do período de estudo no conjunto de dados original versus nosso novo conjunto de dados agrupados.
+
+```{r}
+# RESUMINDO NOSSOS DADOS
+
+summary1 <- summarise(elongation_long, total.growth = sum(length))
+summary2 <- summarise(elong_grouped, total.growth = sum(length))
+```
+
+O primeiro resumo corresponde à soma de todos os incrementos de crescimento no conjunto de dados (todos os indivíduos e anos). A segunda nos dá uma desagregação do crescimento total por indivíduo, nossa variável de agrupamento. Também podemos calcular todos os tipos de estatísticas resumidas, como a média ou o desvio padrão do crescimento ao longo dos anos:
+
+```{r}
+summary3 <- summarise(elong_grouped, total.growth = sum(length),
+                                     mean.growth = mean(length),
+                                     sd.growth = sd(length))
+```
+
+> Menos surpreendente é que perdemos todas as outras colunas não especificadas no estágio de agrupamento ou em uma operação de resumo. Por exemplo, perdemos o ano coluna porque há 5 anos para cada indivíduo, e estamos somando para obter um único valor de crescimento por indivíduo. Sempre crie um novo objeto para dados resumidos, para que seu conjunto de dados completo não desapareça!
+
+## **4. Conjuntos de dados baseados em atributos compartilhados**
+
+Às vezes, você tem vários arquivos de dados sobre um mesmo projeto: um para medições feitas em vários locais, outros com dados climáticos nesses locais e talvez alguns metadados sobre seu experimento. Dependendo de suas necessidades analíticas, pode ser muito útil ter todas as informações em uma tabela. É aqui que mesclar, ou juntar, conjuntos de dados é útil.
+
+No exemplo a seguir, queremos manter todas as informações e ter o código de tratamento repetido para as cinco ocorrências de cada indivíduo, então usaremos left_join().
+
+```{r}
+# Carregue os tratamentos associados a cada indivíduo
+
+treatments <- read.csv("Assets/EmpetrumTreatments.csv", header = TRUE, sep = ";")
+head(treatments)
+
+# Junte os dois quadros de dados por código ID. Os nomes das colunas são escritos de forma diferente, então precisamos informar à função quais colunas representam uma correspondência. Temos duas colunas que contêm as mesmas informações em ambos os conjuntos de dados: zona e ID individual.
+
+experiment <- left_join(elongation_long, treatments, by = c("indiv" = "Indiv", "zone" = "Zone"))
+
+# Vemos que o novo objeto tem o mesmo comprimento do nosso primeiro quadro de dados, que é o que queremos. E foram adicionados os tratamentos correspondentes a cada planta!
+```
+
+Se as colunas a serem correspondidas tiverem exatamente o mesmo nome, você poderá omiti-las, pois geralmente são detectadas automaticamente. No entanto, é uma boa prática especificar a condição de mesclagem, pois garante mais controle sobre a função.
+
+```{r}
+experiment2 <- merge(elongation_long, treatments, by.x = c("zone", "indiv"), by.y = c("Zone", "Indiv"))  
+# same result!
+```
+
+Agora que nos demos ao trabalho de adicionar tratamentos aos nossos dados, vamos verificar se eles afetam o crescimento desenhando outro gráfico de caixa.
+
+```{r}
+boxplot(length ~ Treatment, data = experiment)
+
+```
+*Efeitos do aquecimento e da fertilização no crescimento do Empetrum hermaphroditum*
